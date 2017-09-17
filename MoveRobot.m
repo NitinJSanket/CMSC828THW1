@@ -19,6 +19,6 @@ end
 % FOR DEBUGGING ONLY!
 AllPoseIdeal(:,1) = Pose;
 for count = 1:NumSteps
-    AllPoseIdeal(:,count+1) = AllPose(:, count) + Odom;
+    AllPoseIdeal(:,count+1) = AllPoseIdeal(:, count) + Odom;
 end
 end
