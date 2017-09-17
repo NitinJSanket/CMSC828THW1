@@ -11,7 +11,7 @@ close all
 WorldLim = 20;
 % Number of Landmarks
 % LandMarks are uniquely numbered between 1 to NumLandMarks
-NumLandMarks = 200;
+NumLandMarks = 100;
 % Generate LandMarks in the World
 LandMarks = 2.*WorldLim.*rand(NumLandMarks,2) - WorldLim;
 
@@ -44,12 +44,12 @@ CamCov = [CamCovX, CamCovY]';
 % Odom gives change in value
 OdomCovX = 0.3; % in ratio of distance moved in the range (0, 1)
 OdomCovY = 0.3; % in ratio of distance moved in the range (0, 1)
-OdomCovTheta = 0.05; % in ratio of angle rotated in the range (0, 1)
+OdomCovTheta = 0.1; % in ratio of angle rotated in the range (0, 1)
 OdomCov = [OdomCovX, OdomCovY, OdomCovTheta]';
 
 % Number of states will be NumSteps+1 as NumSteps is the number of odometry
 % steps taken
-NumSteps = 9;
+NumSteps = 4;
 % Pose is Initial Pose here
 [AllPose, AllPoseIdeal] = MoveRobot(Pose, OdomCov, NumSteps);
 
@@ -65,16 +65,16 @@ PlotRobot(AllPose, 'b*');
 PlotRobot(AllPoseIdeal, 'bo');
 
 % Plot camera beam
-PlotCamera(AllPose, CamFOV, CamMaxDist);
+PlotCamera(AllPoseIdeal, CamFOV, CamMaxDist);
 
 % Get Sensor Measurements
 ObservedLandMarks = cell(NumSteps+1, 1);
 for count = 1:NumSteps+1
-    ObservedLandMarks{count} = ObserveLandMarks(AllPose(:,count), CamFOV, CamCov, CamMaxDist, LandMarks, PDetLandMark, PDetLandMarkIdx);
+    ObservedLandMarks{count} = ObserveLandMarks(AllPoseIdeal(:,count), CamFOV, CamCov, CamMaxDist, LandMarks, PDetLandMark, PDetLandMarkIdx);
     
     % Plot camera recieving measurements with green and red arrows (for
     % seeing and not seeing)
-    PlotCameraObservations(AllPose(:, count), ObservedLandMarks{count});
+    PlotCameraObservations(AllPoseIdeal(:, count), ObservedLandMarks{count});
 end
 
 %% SLAM using Dead-reckoning
@@ -104,36 +104,36 @@ PlotRobot(PathDeadReckIdeal, 'bo');
 for count = 1:length(ObservedLandMarks)
     if(count == 1)
         BearingMeasurements{count}.Distance =   ...
-        sqrt(ObservedLandMarks{count}.Locations(:,1).^2 + ...
-        ObservedLandMarks{count}.Locations(:,2).^2);
-    BearingMeasurements{count}.Angle = ...
-        atan2(ObservedLandMarks{count}.Locations(:,2),...
-        ObservedLandMarks{count}.Locations(:,1));% - Pose(3);
-    BearingMeasurements{count}.Idx = ObservedLandMarks{count}.Idx;
-    % FOR TESTING ONLY!
-    BearingMeasurements{count}.DistanceNon =   ...
-        sqrt(ObservedLandMarks{count}.LocationsNon(:,1).^2 + ...
-        ObservedLandMarks{count}.LocationsNon(:,2).^2);
-    BearingMeasurements{count}.IdxNon = ObservedLandMarks{count}.IdxNon;
-    BearingMeasurements{count}.AngleNon = ...
-        atan2(ObservedLandMarks{count}.LocationsNon(:,2),...
-        ObservedLandMarks{count}.LocationsNon(:,1));% - Pose(3);
+            sqrt(ObservedLandMarks{count}.Locations(:,1).^2 + ...
+            ObservedLandMarks{count}.Locations(:,2).^2);
+        BearingMeasurements{count}.Angle = ...
+            atan2(ObservedLandMarks{count}.Locations(:,2),...
+            ObservedLandMarks{count}.Locations(:,1)) - AllPoseIdeal(3,count);
+        BearingMeasurements{count}.Idx = ObservedLandMarks{count}.Idx;
+        % FOR TESTING ONLY!
+        BearingMeasurements{count}.DistanceNon =   ...
+            sqrt(ObservedLandMarks{count}.LocationsNon(:,1).^2 + ...
+            ObservedLandMarks{count}.LocationsNon(:,2).^2);
+        BearingMeasurements{count}.IdxNon = ObservedLandMarks{count}.IdxNon;
+        BearingMeasurements{count}.AngleNon = ...
+            atan2(ObservedLandMarks{count}.LocationsNon(:,2),...
+            ObservedLandMarks{count}.LocationsNon(:,1)) - AllPoseIdeal(3,count);
     else
-    BearingMeasurements{count}.Distance =   ...
-        sqrt(ObservedLandMarks{count}.Locations(:,1).^2 + ...
-        ObservedLandMarks{count}.Locations(:,2).^2);
-    BearingMeasurements{count}.Angle = ...
-        atan2(ObservedLandMarks{count}.Locations(:,2),...
-        ObservedLandMarks{count}.Locations(:,1));% - Odom(3, count-1);
-    BearingMeasurements{count}.Idx = ObservedLandMarks{count}.Idx;
-    % FOR TESTING ONLY!
-    BearingMeasurements{count}.DistanceNon =   ...
-        sqrt(ObservedLandMarks{count}.LocationsNon(:,1).^2 + ...
-        ObservedLandMarks{count}.LocationsNon(:,2).^2);
-    BearingMeasurements{count}.IdxNon = ObservedLandMarks{count}.IdxNon;
-    BearingMeasurements{count}.AngleNon = ...
-        atan2(ObservedLandMarks{count}.LocationsNon(:,2),...
-        ObservedLandMarks{count}.LocationsNon(:,1));% - Odom(3, count-1);
+        BearingMeasurements{count}.Distance =   ...
+            sqrt(ObservedLandMarks{count}.Locations(:,1).^2 + ...
+            ObservedLandMarks{count}.Locations(:,2).^2);
+        BearingMeasurements{count}.Angle = ...
+            atan2(ObservedLandMarks{count}.Locations(:,2),...
+            ObservedLandMarks{count}.Locations(:,1)) - AllPoseIdeal(3,count);
+        BearingMeasurements{count}.Idx = ObservedLandMarks{count}.Idx;
+        % FOR TESTING ONLY!
+        BearingMeasurements{count}.DistanceNon =   ...
+            sqrt(ObservedLandMarks{count}.LocationsNon(:,1).^2 + ...
+            ObservedLandMarks{count}.LocationsNon(:,2).^2);
+        BearingMeasurements{count}.IdxNon = ObservedLandMarks{count}.IdxNon;
+        BearingMeasurements{count}.AngleNon = ...
+            atan2(ObservedLandMarks{count}.LocationsNon(:,2),...
+            ObservedLandMarks{count}.LocationsNon(:,1)) - AllPoseIdeal(3,count);
     end
 end
 

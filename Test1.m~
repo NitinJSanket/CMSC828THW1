@@ -24,7 +24,7 @@ Pose = [-WorldLim/2, -WorldLim/2, pi/2]';
 % Camera Field of View in radians
 CamFOV = deg2rad(120);
 % Max. distance seen by camera sensor in m
-CamMaxDist = 15;
+CamMaxDist = 20;
 % Camera Probability of seeing landmark (reliability of detection)
 PDetLandMark = 0.95;
 % Camera Probability of getting right index
@@ -49,11 +49,11 @@ OdomCov = [OdomCovX, OdomCovY, OdomCovTheta]';
 
 % Number of states will be NumSteps+1 as NumSteps is the number of odometry
 % steps taken
-NumSteps = 5;
+NumSteps = 4;
 % Pose is Initial Pose here
 [AllPose, AllPoseIdeal] = MoveRobot(Pose, OdomCov, NumSteps);
 
-%% Plot Robot and World 
+%% Plot Robot and World
 % Plot World and Landmarks
 figure,
 PlotWorld(WorldLim, LandMarks);
@@ -70,11 +70,11 @@ PlotCamera(AllPose, CamFOV, CamMaxDist);
 % Get Sensor Measurements
 ObservedLandMarks = cell(NumSteps+1, 1);
 for count = 1:NumSteps+1
-ObservedLandMarks{count} = ObserveLandMarks(AllPose(:,count), CamFOV, CamCov, CamMaxDist, LandMarks, PDetLandMark, PDetLandMarkIdx);
-
-% Plot camera recieving measurements with green and red arrows (for
-% seeing and not seeing)
-PlotCameraObservations(AllPose(:, count), ObservedLandMarks{count});
+    ObservedLandMarks{count} = ObserveLandMarks(AllPose(:,count), CamFOV, CamCov, CamMaxDist, LandMarks, PDetLandMark, PDetLandMarkIdx);
+    
+    % Plot camera recieving measurements with green and red arrows (for
+    % seeing and not seeing)
+    PlotCameraObservations(AllPose(:, count), ObservedLandMarks{count});
 end
 
 %% SLAM using Dead-reckoning
@@ -83,14 +83,16 @@ end
 PathDeadReck = [0,0,0]';
 % FOR DEBUGGING ONLY
 PathDeadReckIdeal = [0,0,0]';
+Odom = zeros(3, NumSteps);
+OdomIdeal = zeros(3, NumSteps);
 for count = 2:NumSteps+1
     % Estimate Odom
-    Odom = AllPose(:,count)-AllPose(:,count-1);
+    Odom(:, count-1) = AllPose(:,count)-AllPose(:, count-1);
     % Add Estimated Odom to estimate pose
-    PathDeadReck(:,count) = PathDeadReck(:,count-1) + Odom;
+    PathDeadReck(:, count) = PathDeadReck(:,count-1) + Odom(:, count-1);
     % FOR DEBUGGING ONLY
-    OdomIdeal = AllPoseIdeal(:,count)-AllPoseIdeal(:,count-1);
-    PathDeadReckIdeal(:, count) = PathDeadReckIdeal(:, count-1) + OdomIdeal;
+    OdomIdeal(:, count-1) = AllPoseIdeal(:,count)-AllPoseIdeal(:,count-1);
+    PathDeadReckIdeal(:, count) = PathDeadReckIdeal(:, count-1) + OdomIdeal(:, count-1);
 end
 
 % Plot Estimated Path
@@ -100,26 +102,44 @@ PlotRobot(PathDeadReckIdeal, 'bo');
 
 %% Convert Range Measurements to bearing measurements as needed by GTSAM
 for count = 1:length(ObservedLandMarks)
-   BearingMeasurements(count).Locations =   ...
-       sqrt(ObservedLandMarks(count).Locations(:,1).^2 + ...
-       ObservedLandMarks(count).Locations(:,2).^2);
-   BearingMeasurements(count).Angle = ...
-       atan2(ObservedLandMarks(count).Locations(:,2),...
-       ObservedLandMarks(count).Locations(:,1));
-   BearingMeasurements(count).Idx = ObservedLandMarks(count).Idx;
-   % FOR TESTING ONLY!
-   BearingMeasurements(count).LocationsNon =   ...
-       sqrt(ObservedLandMarks(count).LocationsNon(:,1).^2 + ...
-       ObservedLandMarks(count).LocationsNon(:,2).^2);
-   BearingMeasurements(count).IdxNon = ObservedLandMarks(count).IdxNon;
-    BearingMeasurements(count).AngleNon = ...
-       atan2(ObservedLandMarks(count).LocationsNon(:,2),...
-       ObservedLandMarks(count).Locations(:,1));
+    if(count == 1)
+        BearingMeasurements{count}.Distance =   ...
+            sqrt(ObservedLandMarks{count}.Locations(:,1).^2 + ...
+            ObservedLandMarks{count}.Locations(:,2).^2);
+        BearingMeasurements{count}.Angle = ...
+            (- atan2(ObservedLandMarks{count}.Locations(:,2),...
+            ObservedLandMarks{count}.Locations(:,1)) - AllPose(3,count));
+        BearingMeasurements{count}.Idx = ObservedLandMarks{count}.Idx;
+        % FOR TESTING ONLY!
+        BearingMeasurements{count}.DistanceNon =   ...
+            sqrt(ObservedLandMarks{count}.LocationsNon(:,1).^2 + ...
+            ObservedLandMarks{count}.LocationsNon(:,2).^2);
+        BearingMeasurements{count}.IdxNon = ObservedLandMarks{count}.IdxNon;
+        BearingMeasurements{count}.AngleNon = ...
+            (- atan2(ObservedLandMarks{count}.LocationsNon(:,2),...
+            ObservedLandMarks{count}.LocationsNon(:,1)) - AllPose(3,count));
+    else
+        BearingMeasurements{count}.Distance =   ...
+            sqrt(ObservedLandMarks{count}.Locations(:,1).^2 + ...
+            ObservedLandMarks{count}.Locations(:,2).^2);
+        BearingMeasurements{count}.Angle = ...
+           (- atan2(ObservedLandMarks{count}.Locations(:,2),...
+            ObservedLandMarks{count}.Locations(:,1)) - AllPose(3,count));
+        BearingMeasurements{count}.Idx = ObservedLandMarks{count}.Idx;
+        % FOR TESTING ONLY!
+        BearingMeasurements{count}.DistanceNon =   ...
+            sqrt(ObservedLandMarks{count}.LocationsNon(:,1).^2 + ...
+            ObservedLandMarks{count}.LocationsNon(:,2).^2);
+        BearingMeasurements{count}.IdxNon = ObservedLandMarks{count}.IdxNon;
+        BearingMeasurements{count}.AngleNon = ...
+            -(- atan2(ObservedLandMarks{count}.LocationsNon(:,2),...
+            ObservedLandMarks{count}.LocationsNon(:,1)) - AllPose(3,count));
+    end
 end
 
 %% SLAM using GTSAM
 ToolboxPath = 'gtsam_toolbox';
-% SLAMUsingGTSAM;
+SLAMUsingGTSAM;
 
 
 

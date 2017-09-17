@@ -16,11 +16,11 @@ for count = 1:NumSteps+1
     x{count} = symbol('x', count);
 end
 % Variables to store landmarks
-NumLandMarksObserved = [];
+LandMarksObserved = [];
 for count = 1:length(ObservedLandMarks)
-    NumLandMarksObserved = [NumLandMarksObserved, ObservedLandMarks{count}.Idx];
+    LandMarksObserved = [LandMarksObserved, ObservedLandMarks{count}.Idx];
 end
-LandMarksObserved = unique(NumLandMarksObserved);
+LandMarksObserved = unique(LandMarksObserved);
 l = cell(length(LandMarksObserved),1);
 for count = 1:length(LandMarksObserved)
     l{count} = symbol('l', LandMarksObserved(count));
@@ -30,7 +30,7 @@ end
 graph = NonlinearFactorGraph;
 
 %% Add prior to fix first pose as origin
-priorMean = Pose2(0.0, 0.0, 0.0); % prior at origin
+priorMean = Pose2(-10.0, -10.0, pi/2); % prior at origin
 priorNoise = noiseModel.Diagonal.Sigmas([1e-6; 1e-6; 1e-6]);
 graph.add(PriorFactorPose2(x{1}, priorMean, priorNoise));
 
@@ -40,50 +40,116 @@ graph.add(PriorFactorPose2(x{1}, priorMean, priorNoise));
 % Pose2 is in units of [m,m,radians]
 odometryNoise = noiseModel.Diagonal.Sigmas([1.0; 1.0; deg2rad(10)]);
 for count = 1:NumSteps
-    odometry = Odom(:, count)';
+    odometry = Pose2(Odom(1, count),Odom(2, count),Odom(3, count));
     graph.add(BetweenFactorPose2(x{count}, x{count+1}, odometry, odometryNoise));
 end
 
+
 %% Add bearing/range measurement factors
-brNoise = noiseModel.Diagonal.Sigmas([0.2; deg2rad(2)]);
+brNoise = noiseModel.Diagonal.Sigmas([0.2; deg2rad(5)]);
 for step = 1:NumSteps+1
-    for count = 1:length(ObservedLandMarks{count}.Idx)
-        LandMarkIdx = find(LandMarksObserved == ObservedLandMarks{count}.Idx(count));
+    for count = 1:length(ObservedLandMarks{step}.Idx)
+        LandMarkIdx = find(LandMarksObserved == ObservedLandMarks{step}.Idx(count));
         graph.add(BearingRangeFactor2D(x{step}, l{LandMarkIdx},...
-        Rot2(BearingMeasurements(step).Angle(count)), BearingMeasurements(step).Distance(count), brNoise));
+            Rot2(BearingMeasurements{step}.Angle(count)), BearingMeasurements{step}.Distance(count), brNoise));
     end
 end
 
 % print
-graph.print(sprintf('\nFull graph:\n'));
+graph.print(sprintf('\nFull grObservedLandMarks{step}.Idxaph:\n'));
 
 %% Initialize to noisy points
 initialEstimate = Values;
-for count = 1:
-initialEstimate.insert(i1, Pose2(0.5, 0.0, 0.2));
-initialEstimate.insert(i2, Pose2(2.3, 0.1,-0.2));
-initialEstimate.insert(i3, Pose2(4.1, 0.1, 0.1));
-initialEstimate.insert(j1, Point2(1.8, 2.1));
-initialEstimate.insert(j2, Point2(4.1, 1.8));
+initialEstimate.insert(x{1}, Pose2(-10.0 ,-10.0 , pi/2));
+for count = 2:NumSteps+1
+    initialEstimate.insert(x{count}, Pose2(rand , rand, rand));
+end
+for count = 1:length(LandMarksObserved)
+    %     initialEstimate.insert(l{count}, Point2(2.*WorldLim.*rand - WorldLim,...
+    %         2.*WorldLim.*rand - WorldLim));
+    Err = 10;
+    initialEstimate.insert(l{count}, Point2(LandMarks(LandMarksObserved(count),1)+rand*Err-Err/2,...
+        LandMarks(LandMarksObserved(count),2)+rand*Err-Err/2));
+end
 
 initialEstimate.print(sprintf('\nInitial estimate:\n'));
 
 %% Optimize using Levenberg-Marquardt optimization with an ordering from colamd
-optimizer = LevenbergMarquardtOptimizer(graph, initialEstimate);
+% optimizer = LevenbergMarquardtOptimizer(graph, initialEstimate);
+% result = optimizer.optimizeSafely();
+% result.print(sprintf('\nFinal result:\n'));
+
+
+% params = DoglegParams;
+% params.setAbsoluteErrorTol(1e-15);
+% params.setRelativeErrorTol(1e-15);
+% params.setVerbosity('ERROR');
+% params.setVerbosityDL('VERBOSE');
+% params.setOrdering(graph.orderingCOLAMD());
+% optimizer = DoglegOptimizer(graph, initialEstimate, params);
+% 
+% result = optimizer.optimizeSafely();
+% result.print('final result');
+
+optimizer =  GaussNewtonOptimizer(graph, initialEstimate);
 result = optimizer.optimizeSafely();
 result.print(sprintf('\nFinal result:\n'));
+%% Fetch Results
+% Each column is [x, y, theta]'
+Optimizedx = zeros(3, NumSteps+1);
+% Each column is [x, y, ID]'
+Optimizedl = zeros(3, length(LandMarksObserved));
+
+for step = 1:NumSteps+1
+    Optimizedx(:, step) = [result.at(x{step}).x, result.at(x{step}).y, result.at(x{step}).theta]';
+end
+
+
+for count = 1:length(LandMarksObserved)
+    Optimizedl(:, count) = [result.at(l{count}).x, result.at(l{count}).y, LandMarksObserved(count)]';
+end
 
 %% Plot Covariance Ellipses
-cla;hold on
+figure,
+hold on
+
+for step = 1:NumSteps+1
+    for count = 1:length(ObservedLandMarks{step}.Idx)
+        LandMarkIdx = find(LandMarksObserved == ObservedLandMarks{step}.Idx(count));
+        plot([result.at(x{step}).x; result.at(l{LandMarkIdx}).x],...
+            [result.at(x{step}).y; result.at(l{LandMarkIdx}).y], 'c-');
+    end
+end
 
 marginals = Marginals(graph, result);
 plot2DTrajectory(result, [], marginals);
 plot2DPoints(result, 'b', marginals);
-
-plot([result.at(i1).x; result.at(j1).x],[result.at(i1).y; result.at(j1).y], 'c-');
-plot([result.at(i2).x; result.at(j1).x],[result.at(i2).y; result.at(j1).y], 'c-');
-plot([result.at(i3).x; result.at(j2).x],[result.at(i3).y; result.at(j2).y], 'c-');
-axis([-0.6 4.8 -1 1])
 axis equal
-view(2)
 
+%% Compute Error with respect to idea values
+figure,
+plot(AllPoseIdeal(1,:), AllPoseIdeal(2,:), 'b.');
+hold on;
+plot(Optimizedx(1,:), Optimizedx(2,:), 'r.');
+plot(AllPose(1,:), AllPose(3, :), 'g.');
+
+%% Calculate Position and Angle Error
+% TODO: Measure LandMark Error as well
+PosErr  = sqrt(sum((Optimizedx(1, :) -  AllPoseIdeal(1,:)).^2 + (Optimizedx(2, :) -  AllPoseIdeal(2,:)).^2));
+AngErr = sum(Optimizedx(3, :) -  AllPoseIdeal(3,:));
+disp(['Position error per step is ', num2str(PosErr/(NumSteps+1)), ' in m']);
+disp(['Angle error per step is ', num2str(rad2deg(AngErr/(NumSteps+1))), ' in degrees']);
+
+% [tform, AlignedOptimizedx] = pcregrigid(pointCloud([Optimizedx(1:2,:)-10; zeros(1, size(Optimizedx,2))]'),...
+%     pointCloud([AllPoseIdeal(1:2, :); zeros(1, size(AllPoseIdeal,2))]'));
+% 
+% figure,
+% plot(AllPoseIdeal(1,:), AllPoseIdeal(2,:), 'b.');
+% hold on;
+% plot(AlignedOptimizedx.Location(:,1), AlignedOptimizedx.Location(:,2), 'r.');
+% % plot(AllPose(1,:), AllPose(3, :), 'g.');
+% 
+% figure,
+% plot(Optimizedx(3,:)+pi/2);
+% hold on;
+% plot(AllPoseIdeal(3,:));
