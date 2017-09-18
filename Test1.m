@@ -140,7 +140,3 @@ end
 %% SLAM using GTSAM
 ToolboxPath = 'gtsam_toolbox';
 SLAMUsingGTSAM;
-
-
-
-

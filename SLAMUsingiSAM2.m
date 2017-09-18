@@ -9,6 +9,13 @@ import gtsam.*
 %  - The robot and landmarks are on a grid, moving 2 meters each step
 %  - Landmarks are 2 meters away from the robot trajectory
 
+% iSAM Options
+options.hardConstraint = false;
+options.pointPriors = false;
+options.batchInitialization = true;
+options.reorderInterval = 10;
+options.alwaysRelinearize = false;
+
 %% Create keys for variables
 % Variables to store state
 x = cell(NumSteps+1, 1);
