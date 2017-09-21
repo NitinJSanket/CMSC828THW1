@@ -9,12 +9,10 @@ import gtsam.*
 %  - The robot and landmarks are on a grid, moving 2 meters each step
 %  - Landmarks are 2 meters away from the robot trajectory
 
-% iSAM Options
-options.hardConstraint = false;
-options.pointPriors = false;
-options.batchInitialization = true;
-options.reorderInterval = 10;
-options.alwaysRelinearize = false;
+%% Initialize iSAM
+params = gtsam.ISAM2Params;
+params.setOptimizationParams(gtsam.ISAM2DoglegParams)
+isam = ISAM2(params);
 
 %% Create keys for variables
 % Variables to store state
@@ -46,21 +44,22 @@ graph.add(PriorFactorPose2(x{1}, priorMean, priorNoise));
 % can be changed later to follow some trajectory)
 % Pose2 is in units of [m,m,radians]
 odometryNoise = noiseModel.Diagonal.Sigmas([1.0; 1.0; deg2rad(10)]);
-for count = 1:NumSteps
-    odometry = Pose2(Odom(1, count),Odom(2, count),Odom(3, count));
-    graph.add(BetweenFactorPose2(x{count}, x{count+1}, odometry, odometryNoise));
-end
+odometry = Pose2(Odom(1, 1),Odom(2, 1),Odom(3, 1));
+graph.add(BetweenFactorPose2(x{1}, x{2}, odometry, odometryNoise));
+% for count = 1:NumSteps
+%     odometry = Pose2(Odom(1, count),Odom(2, count),Odom(3, count));
+%     graph.add(BetweenFactorPose2(x{count}, x{count+1}, odometry, odometryNoise));
+% end
 
 
 %% Add bearing/range measurement factors
 brNoise = noiseModel.Diagonal.Sigmas([0.2; deg2rad(10)]);
-for step = 1:NumSteps+1
-    for count = 1:length(ObservedLandMarks{step}.Idx)
-        LandMarkIdx = find(LandMarksObserved == ObservedLandMarks{step}.Idx(count));
-        graph.add(BearingRangeFactor2D(x{step}, l{LandMarkIdx},...
-            Rot2(BearingMeasurements{step}.Angle(count)), BearingMeasurements{step}.Distance(count), brNoise));
-    end
+for count = 1:length(ObservedLandMarks{1}.Idx)
+    LandMarkIdx = find(LandMarksObserved == ObservedLandMarks{1}.Idx(count));
+    graph.add(BearingRangeFactor2D(x{1}, l{LandMarkIdx},...
+        Rot2(BearingMeasurements{1}.Angle(count)), BearingMeasurements{1}.Distance(count), brNoise));
 end
+
 
 % print
 graph.print(sprintf('\nFull grObservedLandMarks{step}.Idxaph:\n'));
@@ -68,9 +67,9 @@ graph.print(sprintf('\nFull grObservedLandMarks{step}.Idxaph:\n'));
 %% Initialize to noisy points
 initialEstimate = Values;
 initialEstimate.insert(x{1}, Pose2(-10.0 ,-10.0 , pi/2));
-for count = 2:NumSteps+1
-    initialEstimate.insert(x{count}, Pose2(rand , rand, rand));
-end
+% for count = 2:NumSteps+1
+%     initialEstimate.insert(x{count}, Pose2(rand , rand, rand));
+% end
 for count = 1:length(LandMarksObserved)
     %     initialEstimate.insert(l{count}, Point2(2.*WorldLim.*rand - WorldLim,...
     %         2.*WorldLim.*rand - WorldLim));
