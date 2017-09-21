@@ -27,7 +27,7 @@ import gtsam.*
 %    Time (sec)	X_pose (m)	Y_pose (m)
 % TD
 %    Time (sec)	Sender / Antenna ID	Receiver Node ID	Range (m)
-if true % switch between data files
+if false % switch between data files
   datafile = findExampleDataFile('Plaza1_.mat');
   headingOffset=0;
   minK=200; % minimum number of range measurements to process initially
@@ -163,7 +163,7 @@ for i=1:M % M
   
   % visualize
   if mod(i,50)==0 && k>minK
-    figure(1);clf;hold on
+    figure(1);hold on
     
     % odometry
     XYT = utilities.extractPose2(odo);

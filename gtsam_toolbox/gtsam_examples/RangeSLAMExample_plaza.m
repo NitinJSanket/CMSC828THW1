@@ -91,7 +91,7 @@ result = batchOptimizer.optimize();
 toc
 
 %% visualize
-figure(1);clf;hold on
+figure(2);hold on
 
 % odometry
 XYT = utilities.extractPose2(initial);

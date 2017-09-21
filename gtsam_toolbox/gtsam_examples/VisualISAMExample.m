@@ -27,7 +27,7 @@ options.alwaysRelinearize = false;
 % Display Options
 options.saveDotFile = false;
 options.printStats = false;
-options.drawInterval = 5;
+options.drawInterval = 1;
 options.cameraInterval = 1;
 options.drawTruePoses = false;
 options.saveFigures = false;
@@ -37,7 +37,7 @@ options.saveDotFiles = false;
 [data,truth] = VisualISAMGenerateData(options);
 
 %% Initialize iSAM with the first pose and points
-[noiseModels,isam,result,nextPose] = VisualISAMInitialize(data,truth,options);
+[noiseModels, isam, result, nextPose] = VisualISAMInitialize(data, truth, options);
 cla;
 VisualISAMPlot(truth, data, isam, result, options)
 
