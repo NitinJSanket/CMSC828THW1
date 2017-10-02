@@ -7,7 +7,7 @@ import gtsam.*
 %  - We have bearing and range information for measurements
 %  - We have full odometry for measurements
 %  - The robot and landmarks are on a grid, moving 2 meters each step
-%  - Landmarks are 2 meters away from the robot trajectory
+%  - Landmarks visible to the robot are in a 2 meter radius from the robot
 
 %% Create keys for variables
 % Variables to store state
