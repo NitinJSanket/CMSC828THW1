@@ -6,8 +6,8 @@ import gtsam.*
 %  - Robot poses are facing along the X axis (horizontal, to the right in images)
 %  - We have bearing and range information for measurements
 %  - We have full odometry for measurements
-%  - The robot and landmarks are on a grid, moving 2 meters each step
-%  - Landmarks visible to the robot are in a 2 meter radius from the robot
+%  - In each step, the robot moves (2,2) in x and y.
+%  - Landmarks visible to the robot are in a 15 meter radius from the robot
 
 %% Create keys for variables
 % Variables to store state
