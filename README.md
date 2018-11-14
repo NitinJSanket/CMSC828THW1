@@ -14,4 +14,3 @@ The assumptions made are:
 5. Refer to math from slides
 6. Cite GTSAM links from slides (1st and 2nd links) 
 *** 
-Talk to Kanishka and write the auto-grader instructions
