@@ -36,8 +36,6 @@ CamCovX = 0.1; % in m
 CamCovY = 0.1; % in m
 CamCov = [CamCovX, CamCovY]';
 
-% TODO: Implement probability for landmark being given wrong index?
-
 %% Setup Odometry Parameters
 % Odometry noise covariance (x, y, theta), assumed diagonal covariance
 
