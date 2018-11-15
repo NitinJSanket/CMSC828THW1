@@ -19,6 +19,6 @@ This code simulates the environment, robot movement, robot observations and then
 #### Assumptions
 The assumptions made are:
 - The world extends from -WorldLim to WorldLim in both X and Y directions. Refer to [Test1.m](https://github.com/NitinJSanket/CMSC828THW1/blob/master/Test1.m) script.
-- You have a noisy odometry estimate with noise covariance given by [0.3 0.3 0.1\].\*[MovementX MovementY MovementTheta].
+- You have a noisy odometry estimate with noise covariance given by [0.3 0.3 0.1] ([MovementX MovementY MovementTheta]).
 - The landmark noise is given by [0.1 0.1] in m.
 - Landmarks are non blocking (you can see a landmark behind another landmark).
