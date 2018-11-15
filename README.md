@@ -1,5 +1,5 @@
 # CMSC828THW1 and CMSC426 (Fall 2018) GTSAM Toy Problem Code
-GTSAM Toy Problem
+GTSAM Toy Problem <br>
 Authors: [Nitin J. Sanket](http://nitinjsanket.github.io) and [Chahat Deep Singh](https://chahatdeep.github.io/).
 
 #### What?
